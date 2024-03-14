@@ -22,7 +22,7 @@ export default async (
 	excludeFiles: string[],
 	stageAll: boolean,
 	commitType: string | undefined,
-	rawArgv: string[]
+	rawArgv: string[],
 ) =>
 	(async () => {
 		intro(bgCyan(black(' aicommits ')));
@@ -41,14 +41,14 @@ export default async (
 		if (!staged) {
 			detectingFiles.stop('Detecting staged files');
 			throw new KnownError(
-				'No staged changes found. Stage your changes manually, or automatically stage all changes with the `--all` flag.'
+				'No staged changes found. Stage your changes manually, or automatically stage all changes with the `--all` flag.',
 			);
 		}
 
 		detectingFiles.stop(
 			`${getDetectedMessage(staged.files)}:\n${staged.files
 				.map((file) => `     ${file}`)
-				.join('\n')}`
+				.join('\n')}`,
 		);
 
 		const { env } = process;
@@ -58,6 +58,7 @@ export default async (
 				env.https_proxy || env.HTTPS_PROXY || env.http_proxy || env.HTTP_PROXY,
 			generate: generate?.toString(),
 			type: commitType?.toString(),
+			base_api: env.OPENAI_API_BASE,
 		});
 
 		const s = spinner();
@@ -73,7 +74,8 @@ export default async (
 				config['max-length'],
 				config.type,
 				config.timeout,
-				config.proxy
+				config.proxy,
+				config.base_api,
 			);
 		} finally {
 			s.stop('Changes analyzed');

@@ -19,7 +19,7 @@ const httpsPost = async (
 	headers: Record<string, string>,
 	json: unknown,
 	timeout: number,
-	proxy?: string
+	proxy?: string,
 ) =>
 	new Promise<{
 		request: ClientRequest;
@@ -51,15 +51,15 @@ const httpsPost = async (
 						data: Buffer.concat(body).toString(),
 					});
 				});
-			}
+			},
 		);
 		request.on('error', reject);
 		request.on('timeout', () => {
 			request.destroy();
 			reject(
 				new KnownError(
-					`Time out error: request took over ${timeout}ms. Try increasing the \`timeout\` config, or checking the OpenAI API status https://status.openai.com`
-				)
+					`Time out error: request took over ${timeout}ms. Try increasing the \`timeout\` config, or checking the OpenAI API status https://status.openai.com`,
+				),
 			);
 		});
 
@@ -71,17 +71,18 @@ const createChatCompletion = async (
 	apiKey: string,
 	json: CreateChatCompletionRequest,
 	timeout: number,
-	proxy?: string
+	proxy?: string,
+	baseAPI?: string,
 ) => {
 	const { response, data } = await httpsPost(
-		'api.openai.com',
+		baseAPI ?? 'api.openai.com',
 		'/v1/chat/completions',
 		{
 			Authorization: `Bearer ${apiKey}`,
 		},
 		json,
 		timeout,
-		proxy
+		proxy,
 	);
 
 	if (
@@ -139,7 +140,8 @@ export const generateCommitMessage = async (
 	maxLength: number,
 	type: CommitType,
 	timeout: number,
-	proxy?: string
+	proxy?: string,
+	baseAPI?: string,
 ) => {
 	try {
 		const completion = await createChatCompletion(
@@ -165,19 +167,20 @@ export const generateCommitMessage = async (
 				n: completions,
 			},
 			timeout,
-			proxy
+			proxy,
+			baseAPI,
 		);
 
 		return deduplicateMessages(
 			completion.choices
 				.filter((choice) => choice.message?.content)
-				.map((choice) => sanitizeMessage(choice.message!.content as string))
+				.map((choice) => sanitizeMessage(choice.message!.content as string)),
 		);
 	} catch (error) {
 		const errorAsAny = error as any;
 		if (errorAsAny.code === 'ENOTFOUND') {
 			throw new KnownError(
-				`Error connecting to ${errorAsAny.hostname} (${errorAsAny.syscall}). Are you connected to the internet?`
+				`Error connecting to ${errorAsAny.hostname} (${errorAsAny.syscall}). Are you connected to the internet?`,
 			);
 		}
 
